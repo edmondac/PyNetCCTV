@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" href="{{ MEDIA_URL }}/cctv/style.css" />
+    <title>{% block title %}PyNetCCTV{% endblock %}</title>
+  </head>
+
+  <body>
+    <div id="page">
+      
+    <div id="header">
+     <div id="topbar"></div>
+     <div id="banner">
+      <b>Security Cameras</b>
+     </div>
+     <div id="menu">
+       <a href="index.html">Home</a>
+       <a href="montage.html">Live feeds</a>
+       <a href="snapshots.html">Snapshots</a>
+       <a href="{% url admin:index %}" target="admin">Manage</a>
+     </div>
+    </div>
+      
+    <div id="container">
+    
+    <div id="content">
+          {% block content %}{% endblock %}
+    </div>
+
+    <div id="clear"></div>
+    
+      </div>
+      
+      <div id="footer">
+       Powered by <a href="https://github.com/rameus/PyNetCCTV">PyNetCCTV</a>
+      </div>
+      
+    </div>
+    
+  </body>
+  
+</html>
+

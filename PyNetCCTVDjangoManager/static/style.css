@@ -1,0 +1,126 @@
+body {
+background-color: #888888;
+margin: 0px 0px 0px 0px;
+font-family: arial, sans-serif;
+font-size: 10pt;
+}
+
+#page {
+margin-left: auto;
+margin-right: auto;
+margin-top: 20px;
+margin-bottom: 20px;
+width:90%;
+//width: 960px;
+}
+
+#page {
+-moz-box-shadow: 0 0 15px black;
+-webkit-box-shadow: 0 0 15px black;
+box-shadow: 0 0 15px black;
+}
+
+#header {
+background-color: #000060;
+color: white;
+}
+
+#header img {
+border: none;
+margin: 0px 0px 0px 30px;
+}
+
+#topbar {
+height: 3px;
+vertical-align: top;
+text-align:right;
+font-size: 70%;
+}
+
+#topbar a {
+text-decoration: none;
+color: white;
+}
+
+#banner {
+color:#ffea00;
+padding-left: 2px;
+font-size: 120%;
+font-weight: bold;
+}
+
+#menu {
+padding: 5px 0px 5px 30px;
+}
+
+#menu a {
+color: white;
+font-weight: bold;
+text-decoration: none;
+padding: 1px 10px 1px 10px;
+border: 1px solid darkgray;
+}
+
+#menu a:hover {
+background-color: white;
+color: #66999a;
+border: 1px solid white;
+}
+
+#footer {
+width: 100%;
+color: #ffea00;
+background-color: #000060;
+text-align: right;
+font-size: 90%;
+}
+
+#footer * {
+padding-right: 2px;
+}
+
+#footer a {
+text-decoration: none;
+color: white;
+}
+
+#footer a:hover {
+text-decoration: underline;
+}
+
+#container {
+background-color: white;
+border: 1px solid ;
+}
+
+#content {
+background-color: white;
+position: relative;
+margin: 5px 30px 5px 30px;
+}
+
+h1 {
+color: #66999a;
+font-size: 110%;
+border: 1px solid #bbeeef;
+padding: 1px 1px 1px 1px;
+}
+
+h2 {
+color: #a66999;
+font-size: 100%;
+border: 1px solid #fbbeee;
+padding: 1px 1px 1px 1px;
+}
+
+table, th, td {
+border: 1px solid #66999a;
+border-collapse:collapse;
+font-size: 80%;
+}
+
+
+#clear {
+clear:both;
+height:1px;
+}

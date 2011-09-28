@@ -1,0 +1,21 @@
+{% extends "cctv/base.html" %}
+
+<meta http-equiv="refresh" content="30">
+
+{% block content %}
+
+<table>
+{% for row in matrix %}
+ <tr>
+ {% for cam in row %}
+  <td width="{{ image_width }}">
+   <img src="http://{{ cam.username }}:{{ cam.password }}@{{ cam.hostname }}/{{ cam.stream_url }}" width="100%">
+   <br>{{ cam.name }} <a href="http://{{ cam.username }}:{{ cam.password }}@{{ cam.hostname }}/{{ cam.stream_url }}" target="{{ cam.name }}">[new window]</a>
+  </td>
+ {% endfor %}
+ </tr>
+{% endfor %}
+</table>
+
+{% endblock content %}
+
