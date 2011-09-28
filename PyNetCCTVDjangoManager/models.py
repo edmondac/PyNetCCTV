@@ -17,16 +17,21 @@ class Snapshot(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='snapshots')
     
+    def delete(self):
+        #We want to try to delete the image file
+        #on disk here too, since it's likely that
+        #the delete is happening to save disk space.
+
+        #WARNING: this method is not called if the
+        #delete is done via the admin interface's
+        #'delete selected objects' call. So the image
+        #on disk will not be deleted in that case
+
+        try:
+            self.image.delete()
+        finally:
+            super(Snapshot, self).delete()
+
     def __unicode__(self):
         return "Snapshot: %s => %s" %(self.camera, self.timestamp)
-
-
-##############
-#FOR LATER
-#
-#from django.core.files import File
-#result = urllib.urlretrieve(url)
-#s = Snapshot()
-#s.camera = ...
-#s.image.save(a_filename, File(open(result[0])))
 
