@@ -1,0 +1,17 @@
+{% extends "cctv/base.html" %}
+
+{% block content %}
+
+<h1>Snapshot from camera: {{ snap.camera.name }}</h1>
+
+<h2>{{ snap.timestamp|date:"D j M H:i:s"}}</h2>
+
+<center>
+<img src="{{ MEDIA_URL }}/{{ snap.image }}" width="90%">
+</center>
+
+<br>
+<input type=button value="Go back" onClick="javascript:history.go(-1);">
+
+{% endblock content %}
+
