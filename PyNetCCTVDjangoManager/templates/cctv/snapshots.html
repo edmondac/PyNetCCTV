@@ -2,6 +2,33 @@
 
 {% block content %}
 
+<div id="filters">
+Filter results:<br>
+<form>
+ <table id="filters_tab">
+  <tr>
+   <th rowspan="2">From</th>
+   <td><input name="from_date" size="8" value="{{ from_date|default:"dd/mm/yy" }}"></td>
+  </tr>
+  <tr>
+   <td><input name="from_time" size="8" value="{{ from_time }}"></td>
+  </tr>
+  <tr>
+   <th rowspan="2">To</th>
+   <td><input name="to_date" size="8" value="{{ to_date|default:"dd/mm/yy" }}"></td>
+  </tr>
+  <tr>
+   <td><input name="to_time" size="8" value="{{ to_time }}"></td>
+  </tr>
+  <tr>
+   <td colspan="2"><input type="submit" value="apply">
+      <a href="snapshots.html">reset</a>
+   </td>
+  </tr>
+ </table>
+</form>
+</div>
+
 Snapshots per page: 
 <a href="snapshots.html?page={{ page }}&per_page=10">10</a> |
 <a href="snapshots.html?page={{ page }}&per_page=25">25</a> |

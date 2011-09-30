@@ -99,6 +99,17 @@ position: relative;
 margin: 5px 30px 5px 30px;
 }
 
+#filters {
+float: right;
+border: 1px solid grey;
+padding: 5px;
+background-color: #dddddd;
+}
+
+#filters_tab {
+font-size: 100%;
+}
+
 h1 {
 color: #66999a;
 font-size: 110%;
