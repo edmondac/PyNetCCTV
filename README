@@ -3,5 +3,12 @@ PyNetCCTV is a simple IP-camera CCTV package that displays live CCTV feeds and r
 
 THIS SOFTWARE IS STILL IN DEVELOPMENT AND NOT YET READY TO BE USED
 
-::Installation
-#TODO
+However - you're welcome to download it, have a play and get in touch with comments and suggestions... ed@rameus.org.uk
+
+TODO:
+  - Cleanup old snapshots when the disk is getting full
+  - Write docs
+  - Make release and package
+
+For detailled documentation see the docs/ folder.
+
