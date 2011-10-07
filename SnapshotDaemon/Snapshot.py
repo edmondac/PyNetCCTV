@@ -20,9 +20,81 @@ import threading
 import time
 import signal
 import os, sys
+import subprocess
 
 class BaseThread(threading.Thread):
     stop = False
+
+class HousekeepingThread(BaseThread):
+    def __init__(self, df_perc=80, sleep_time=60):
+        self.df_perc = df_perc
+        self.sleep_time = sleep_time
+        super(HousekeepingThread, self).__init__()
+
+    def run(self):
+        while super(HousekeepingThread, self).stop is False:
+            self.check()
+            time.sleep(self.sleep_time)
+
+    def check(self):
+        #Find the filesystem with the snapshots
+        #and check its disk usage
+        
+        #First, go through the records until we find one with an image file
+        #(creation is not atomic, so some records may exist in an unfinished 
+        # state)
+        for sn in DjangoSnapshot.objects.all():
+            try:
+                #There is a possibility that some database records
+                #might exist without 
+                f = sn.image.file
+            except ValueError, e:
+                if str(e) == "The 'image' attribute has no file associated with it.":
+                    logger.debug("Snapshot record %s has no associated file." %(sn.id))
+                    continue
+
+                else:
+                    raise
+
+            #Now we've found the path, go and check it
+            self.cleanup(os.path.dirname(f.name))
+            break
+
+    def cleanup(self, path):
+        #Find out the disk usage, and clean up old files as needed
+        perc = self.check_df(path)
+        while perc > self.df_perc:
+            #Loop round, deleting 50 files each time
+            logger.info("Disk usage (%s) has passed threshold (%s). " \
+                            "Old snapshots will be deleted." \
+                            %(perc, self.df_perc))
+
+            self.prune(50)
+            perc = self.check_df(path)
+
+    def prune(self, no_of_files):
+        oldest = DjangoSnapshot.objects.all().order_by("timestamp")[:no_of_files]
+        #We have to delete them one by one, so that the file-deletion
+        #stuff is called. (QuerySet.delete skips this step).
+        for snap in oldest:
+            logger.debug("Deleting snapshot %s (%s)" %(snap.id, snap.timestamp))
+            try:
+                snap.delete()
+            except:
+                logger.error("Error deleting snapshot %s. Details follow:" %(snap.id,),
+                             exc_info=True)
+
+        logger.info("Deleted %s oldest snapshots" %(no_of_files))
+
+        #import pdb; pdb.set_trace()
+        
+    def check_df(self, path):
+        logger.debug("Checking disk space on %s filesystem" %(path,))
+        df = subprocess.Popen(["df","."], stdout = subprocess.PIPE).communicate()[0]
+        perc_full = df.split('\n')[1].split()[4]
+        assert perc_full[-1] == "%", "Fatal error finding disk usage"
+        logger.info("Found percentage disk usage is %s (threshold is %s%%)" %(perc_full, self.df_perc))
+        return int(perc_full[:-1])
 
 class CameraThread(BaseThread):
     def __init__(self, django_camera):
@@ -34,10 +106,10 @@ class CameraThread(BaseThread):
         self.url += "@%s/%s" %(self.dj_cam.hostname,
                                self.dj_cam.snapshot_url)
 
-        super(BaseThread, self).__init__()
+        super(CameraThread, self).__init__()
 
     def run(self):
-        while BaseThread.stop is False:
+        while super(CameraThread, self).stop is False:
             self.take_snapshot()
             time.sleep(self.dj_cam.interval)
 
@@ -84,16 +156,20 @@ class Daemon:
         if stop:
             return
         
-        self.cameras = []
+        self.threads = []
         for dc in DjangoCamera.objects.all():
-            self.cameras.append(CameraThread(dc))
+            self.threads.append(CameraThread(dc))
 
-        logger.info("Loaded %d cameras" %len(self.cameras))
+        logger.info("Loaded %d cameras" %len(self.threads))
+
+        logger.debug("Initialising housekeeping thread")
+
+        self.threads.append(HousekeepingThread())
 
         logger.debug("Starting threads")
 
-        for ct in self.cameras:
-            ct.start()
+        for t in self.threads:
+            t.start()
 
         logger.debug("Waiting for stop signal")
     
@@ -102,8 +178,8 @@ class Daemon:
 
         logger.debug("Joining threads")
 
-        for ct in self.cameras:
-            ct.join()
+        for t in self.threads:
+            t.join()
 
         self.unlock()
         logger.debug("All done")

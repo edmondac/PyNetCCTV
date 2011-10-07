@@ -48,9 +48,9 @@ def snapshot(request):
 def snapshots(request):
     cams = Camera.objects.all()
 
-    from_date = request.GET.get('from_date')
+    from_date = request.GET.get('from_date', "")
     from_time = request.GET.get('from_time',"00:00")
-    to_date = request.GET.get('to_date')
+    to_date = request.GET.get('to_date', "")
     to_time = request.GET.get('to_time',"00:00")
 
     try:
@@ -61,7 +61,7 @@ def snapshots(request):
         to_obj = None
 
     if from_obj and to_obj:
-        snaps = Snapshot.objects.filter(timestamp__range=(from_obj, to_obj))
+        snaps = Snapshot.objects.filter(timestamp__range=(from_obj, to_obj)).order_by('-timestamp')
     else:
         snaps = Snapshot.objects.all().order_by('-timestamp')
         
