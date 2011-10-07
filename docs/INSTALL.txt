@@ -1,5 +1,7 @@
 ** PyNetCCTV Installation Instructions **
 
+NOTE: This software is for Linux.
+
 1. How to install the Django application
 
 1.1 First install Django (there are good docs on djangoproject.com)
@@ -29,4 +31,4 @@
       0 * * * * (cd <where you put PyNetCCTV>/SnapshotDaemon/ && ./run_daemon.sh > output)
 
 
-That's it. It should work, but if there are any problems email ed@rameus.org.uk.
+That's it. It should work, but if there are any problems please raise an issue or email ed@rameus.org.uk.

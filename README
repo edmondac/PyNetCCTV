@@ -1,5 +1,5 @@
 ABOUT:
-PyNetCCTV is a simple IP-camera CCTV package that displays live CCTV feeds and records snapshots.
+PyNetCCTV is a simple Linux-based IP-camera CCTV package that displays live CCTV feeds and records snapshots.
 
 It is designed to be easy to set up, easy to use and is able to be run on relatively old hardware. It doesn't do any of the funky image manipulation or motion detection of other tools such as ZoneMinder.
 
