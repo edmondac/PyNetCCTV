@@ -1,14 +1,20 @@
-::About
+ABOUT:
 PyNetCCTV is a simple IP-camera CCTV package that displays live CCTV feeds and records snapshots.
 
-THIS SOFTWARE IS STILL IN DEVELOPMENT AND NOT YET READY TO BE USED
+It is designed to be easy to set up, easy to use and is able to be run on relatively old hardware. It doesn't do any of the funky image manipulation or motion detection of other tools such as ZoneMinder.
 
-However - you're welcome to download it, have a play and get in touch with comments and suggestions... ed@rameus.org.uk
+The UI is provided via a Django app. The snapshots are taken with a bespoke python daemon.
+
+THIS SOFTWARE IS NOW READY FOR BETA TESTING:
+You're welcome to download it, have a play and get in touch with comments and suggestions... ed@rameus.org.uk
 
 TODO:
-  - Cleanup old snapshots when the disk is getting full
   - Write docs
   - Make release and package
 
-For detailled documentation see the docs/ folder.
+KNOWN ISSUES:
+  - Live feeds expose camera authentication (for those who know how to find such things). This is fine for most users, as cameras can often have a read-only account set up.
+
+MORE INFO:
+See the docs/ folder.
 
