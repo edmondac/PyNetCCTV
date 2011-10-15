@@ -71,7 +71,7 @@ Page {{ objects.number }} of {{ objects.paginator.num_pages }}
     			<td><a href="snapshot.html?snap_id={{ snap.id }}"><img src="{{ MEDIA_URL }}/{{ snap.image }}" width="100"></a></td>
     		{% else %}
     			<td></td>
-    		{% endif %}
+    		{% endifequal %}
     	{% endfor %}
     </tr>
 {% endfor %}
