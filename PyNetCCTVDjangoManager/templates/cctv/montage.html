@@ -4,9 +4,9 @@
 
 {% block content %}
 
-<table>
+<table width="100%">
 {% for row in matrix %}
- <tr>
+ <tr width="100%">
  {% for cam in row %}
   <td width="{{ image_width }}">
    <img src="http://{{ cam.username }}:{{ cam.password }}@{{ cam.hostname }}/{{ cam.stream_url }}" width="100%">
