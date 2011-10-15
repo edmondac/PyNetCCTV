@@ -67,7 +67,7 @@ Page {{ objects.number }} of {{ objects.paginator.num_pages }}
     <tr><th><a href="snapshot.html?snap_id={{ snap.id }}">{{ snap.id }}</a></th>
     	<th>{{ snap.timestamp|date:"D j M H:i:s" }}</th>
     	{% for cam in cameras %}
-    		{% if snap.camera == cam %}
+    		{% ifequal snap.camera cam %}
     			<td><a href="snapshot.html?snap_id={{ snap.id }}"><img src="{{ MEDIA_URL }}/{{ snap.image }}" width="100"></a></td>
     		{% else %}
     			<td></td>
