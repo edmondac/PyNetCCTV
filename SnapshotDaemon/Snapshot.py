@@ -1,14 +1,15 @@
 ######################################################################
 #Set up logging
-import logging, logging.handlers
+import logging
+import logging.handlers
 logger = logging.getLogger('pynetcctv')
 logfile = "daemon.log"
-hdlr = logging.handlers.RotatingFileHandler(logfile,maxBytes=100000,backupCount=5)
+hdlr = logging.handlers.RotatingFileHandler(logfile,
+                                            maxBytes=10000000,
+                                            backupCount=5)
 formatter = logging.Formatter('%(asctime)s [%(process)d] %(levelname)s %(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
-#hdlr2 = logging.StreamHandler()
-#logger.addHandler(hdlr2)
 logger.setLevel(logging.DEBUG)
 
 ######################################################################
@@ -19,11 +20,14 @@ import urllib
 import threading
 import time
 import signal
-import os, sys
+import os
+import sys
 import subprocess
+
 
 class BaseThread(threading.Thread):
     stop = False
+
 
 class HousekeepingThread(BaseThread):
     def __init__(self, df_perc=80, sleep_time=60):
@@ -39,18 +43,18 @@ class HousekeepingThread(BaseThread):
     def check(self):
         #Find the filesystem with the snapshots
         #and check its disk usage
-        
+
         #First, go through the records until we find one with an image file
-        #(creation is not atomic, so some records may exist in an unfinished 
+        #(creation is not atomic, so some records may exist in an unfinished
         # state)
         for sn in DjangoSnapshot.objects.all():
             try:
                 #There is a possibility that some database records
-                #might exist without 
+                #might exist without files
                 f = sn.image.file
             except ValueError, e:
                 if str(e) == "The 'image' attribute has no file associated with it.":
-                    logger.debug("Snapshot record %s has no associated file." %(sn.id))
+                    logger.debug("Snapshot record %s has no associated file." % (sn.id))
                     continue
 
                 else:
@@ -67,7 +71,7 @@ class HousekeepingThread(BaseThread):
             #Loop round, deleting 50 files each time
             logger.info("Disk usage (%s) has passed threshold (%s). " \
                             "Old snapshots will be deleted." \
-                            %(perc, self.df_perc))
+                            % (perc, self.df_perc))
 
             self.prune(50)
             perc = self.check_df(path)
@@ -77,34 +81,36 @@ class HousekeepingThread(BaseThread):
         #We have to delete them one by one, so that the file-deletion
         #stuff is called. (QuerySet.delete skips this step).
         for snap in oldest:
-            logger.debug("Deleting snapshot %s (%s)" %(snap.id, snap.timestamp))
+            logger.debug("Deleting snapshot %s (%s)" % (snap.id, snap.timestamp))
             try:
                 snap.delete()
             except:
-                logger.error("Error deleting snapshot %s. Details follow:" %(snap.id,),
+                logger.error("Error deleting snapshot %s. Details follow:" % (snap.id,),
                              exc_info=True)
 
-        logger.info("Deleted %s oldest snapshots" %(no_of_files))
+        logger.info("Deleted %s oldest snapshots" % (no_of_files))
 
         #import pdb; pdb.set_trace()
-        
+
     def check_df(self, path):
-        logger.debug("Checking disk space on %s filesystem" %(path,))
-        df = subprocess.Popen(["df","."], stdout = subprocess.PIPE).communicate()[0]
+        logger.debug("Checking disk space on %s filesystem" % (path,))
+        df = subprocess.Popen(["df","."], 
+                              stdout=subprocess.PIPE).communicate()[0]
         perc_full = df.split('\n')[1].split()[4]
         assert perc_full[-1] == "%", "Fatal error finding disk usage"
-        logger.info("Found percentage disk usage is %s (threshold is %s%%)" %(perc_full, self.df_perc))
+        logger.info("Found percentage disk usage is %s (threshold is %s%%)" % (perc_full, self.df_perc))
         return int(perc_full[:-1])
+
 
 class CameraThread(BaseThread):
     def __init__(self, django_camera):
         self.dj_cam = django_camera
 
         #Build the snapshot URL for this camera
-        self.url = "http://%s" %self.dj_cam.username
-        self.url += ":%s" %self.dj_cam.password
-        self.url += "@%s/%s" %(self.dj_cam.hostname,
-                               self.dj_cam.snapshot_url)
+        self.url = "http://%s" % (self.dj_cam.username,)
+        self.url += ":%s" % (self.dj_cam.password,)
+        self.url += "@%s/%s" % (self.dj_cam.hostname,
+                                self.dj_cam.snapshot_url)
 
         super(CameraThread, self).__init__()
 
@@ -117,16 +123,17 @@ class CameraThread(BaseThread):
         try:
             dj_sn = DjangoSnapshot()
             dj_sn.camera = self.dj_cam
-            dj_sn.save() #For the timestamp
+            dj_sn.save()  # For the timestamp
 
-            #Download the snapshot from the camera
+            # Download the snapshot from the camera
             result = urllib.urlretrieve(self.url)
             f_obj = File(open(result[0]))
-            dj_sn.image.save("%s_%s.jpg" %(self.dj_cam.name,
-                                           dj_sn.timestamp),
+            dj_sn.image.save("%s_%s.jpg" % (self.dj_cam.name,
+                                            dj_sn.timestamp),
                              f_obj)
-            #dj_sn.save() #Not needed as the previous line saves the object too
-            logger.debug("Snapshot taken: %s" %dj_sn)
+            # Don't need dj_sn.save() as the
+            # previous line saves the object too
+            logger.debug("Snapshot taken: %s" % (dj_sn,))
         except:
             logger.warning("Non-fatal error taking snapshot",
                            exc_info=True)
@@ -134,20 +141,22 @@ class CameraThread(BaseThread):
 ##########################################################################
 #Signal handling...
 
+
 def sig_handler(signum, frame):
-    logger.info("Caught signal %s - terminating" %signum)
-    BaseThread.stop = True    
+    logger.info("Caught signal %s - terminating" % (signum,))
+    BaseThread.stop = True
 
 signal.signal(signal.SIGTERM, sig_handler)
 signal.signal(signal.SIGINT, sig_handler)
+
 
 ##########################################################################
 #The main process...
 class Daemon:
     lockfile = "daemon.lock"
-    
+
     def __init__(self, stop=False):
-        print "\n\nSee %s for info\n" %logfile
+        print "\n\nSee %s for info\n" % (logfile,)
         if not self.lock():
             #Bug out
             print "Couldn't get the lock - aborting"
@@ -155,12 +164,12 @@ class Daemon:
 
         if stop:
             return
-        
+
         self.threads = []
         for dc in DjangoCamera.objects.all():
             self.threads.append(CameraThread(dc))
 
-        logger.info("Loaded %d cameras" %len(self.threads))
+        logger.info("Loaded %d cameras" % len(self.threads))
 
         logger.debug("Initialising housekeeping thread")
 
@@ -172,7 +181,7 @@ class Daemon:
             t.start()
 
         logger.debug("Waiting for stop signal")
-    
+
         while BaseThread.stop is False:
             pass
 
@@ -190,29 +199,29 @@ class Daemon:
             pid = open(self.lockfile).read().strip()
             if pid:
                 #There is a pid in the lockfile
-                if os.path.exists("/proc/%s" %pid):
+                if os.path.exists("/proc/%s" % (pid,)):
                     #The process with id pid is running
                     if force:
-                        logger.info("Killing old process %s" %pid)
+                        logger.info("Killing old process %s" % (pid,))
                         try:
-                            os.kill(int(pid),signal.SIGTERM)
+                            os.kill(int(pid), signal.SIGTERM)
                             i = 0
-                            while os.path.exists("/proc/%s" %pid):
+                            while os.path.exists("/proc/%s" % (pid,)):
                                 #We wait until the old process dies
                                 #(otherwise we race for the lockfile)
                                 time.sleep(1)
-                                i+=1
+                                i += 1
                                 if i > 30:
                                     logger.warning("Waited 30s for the old process to die and it didn't")
                                     break
 
-                            if os.path.exists("/proc/%s" %pid):
-                                logger.warning("Sending SIGKILL to old process %s" %pid)
-                                os.kill(int(pid),signal.SIGKILL)
-                                
+                            if os.path.exists("/proc/%s" % (pid,)):
+                                logger.warning("Sending SIGKILL to old process %s" % (pid,))
+                                os.kill(int(pid), signal.SIGKILL)
+
                             ok = True
                         except:
-                            logger.error("Error trying to kill process %s" %(pid),
+                            logger.error("Error trying to kill process %s" % (pid),
                                          exc_info=True)
                     else:
                         #We can't get the lock
@@ -233,10 +242,10 @@ class Daemon:
         if ok:
             logger.debug("Trying to take the lockfile")
             try:
-                open(self.lockfile,'w').write(str(os.getpid()))
-                logger.debug("Lockfile %s locked" %self.lockfile)
+                open(self.lockfile, 'w').write(str(os.getpid()))
+                logger.debug("Lockfile %s locked" % (self.lockfile,))
             except:
-                logger.error("Error locking file %s" %(self.lockfile),
+                logger.error("Error locking file %s" % (self.lockfile,),
                              exc_info=True)
                 ok = False
 
@@ -244,8 +253,8 @@ class Daemon:
 
     def unlock(self):
         #Clear the lock file
-        open(self.lockfile,'w').write("")
-        logger.debug("Lockfile %s unlocked" %self.lockfile)
+        open(self.lockfile, 'w').write("")
+        logger.debug("Lockfile %s unlocked" % (self.lockfile,))
 
 if __name__ == "__main__":
     if sys.argv.count("stop"):

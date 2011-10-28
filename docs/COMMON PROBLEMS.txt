@@ -1,0 +1,5 @@
+Common problems using this software:
+
+1) Why have all my snapshots been deleted?
+This can happen when your disk is quite full (over the threshold, which is 80% by default) and the snapshot daemon tries to delete the oldest snapshots to free up some space. If your disk is full for some other reason - e.g. other applications - then the snapshot daemon might delete all your images. It is worth putting the snapshots folder (or the whole application) in a partition of its own to avoid this problem.
+
