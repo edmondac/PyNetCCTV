@@ -125,8 +125,10 @@ class CameraThread(BaseThread):
             dj_sn.camera = self.dj_cam
             dj_sn.save()  # For the timestamp
 
+            tmpf = "/tmp/pynetcctv_snap_%s_tmp" % (self.dj_cam.hostname,)
+
             # Download the snapshot from the camera
-            result = urllib.urlretrieve(self.url)
+            result = urllib.urlretrieve(self.url, tmpf)
             f_obj = File(open(result[0]))
             dj_sn.image.save("%s_%s.jpg" % (self.dj_cam.name,
                                             dj_sn.timestamp),
