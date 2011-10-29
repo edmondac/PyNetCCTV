@@ -16,6 +16,7 @@ class Snapshot(models.Model):
     camera = models.ForeignKey(Camera)
     timestamp = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='snapshots')
+    thumb = models.ImageField(upload_to='snapshots')
     
     def delete(self):
         #We want to try to delete the image file
@@ -29,6 +30,7 @@ class Snapshot(models.Model):
 
         try:
             self.image.delete()
+            self.thumb.delete()
         finally:
             super(Snapshot, self).delete()
 

@@ -23,6 +23,7 @@ import signal
 import os
 import sys
 import subprocess
+import Image
 
 
 class BaseThread(threading.Thread):
@@ -125,7 +126,7 @@ class CameraThread(BaseThread):
             dj_sn.camera = self.dj_cam
             dj_sn.save()  # For the timestamp
 
-            tmpf = "/tmp/pynetcctv_snap_%s_tmp" % (self.dj_cam.hostname,)
+            tmpf = "/tmp/pynetcctv_snap_%s_tmp.jpg" % (self.dj_cam.hostname,)
 
             # Download the snapshot from the camera
             result = urllib.urlretrieve(self.url, tmpf)
@@ -133,12 +134,30 @@ class CameraThread(BaseThread):
             dj_sn.image.save("%s_%s.jpg" % (self.dj_cam.name,
                                             dj_sn.timestamp),
                              f_obj)
+            
+            #Re-open or seek(0) the file with the open call
+            f_obj.open()
+            th_tmpf = "/tmp/pynetcctv_snap_%s_thumb_tmp.jpg" % (self.dj_cam.hostname,)
+            self.make_thumb(f_obj, th_tmpf)
+            t_obj = File(open(th_tmpf))
+            dj_sn.thumb.save("%s_%s_thumb.jpg" % (self.dj_cam.name,
+                                                  dj_sn.timestamp),
+                             t_obj)
+
+
             # Don't need dj_sn.save() as the
             # previous line saves the object too
             logger.debug("Snapshot taken: %s" % (dj_sn,))
         except:
             logger.warning("Non-fatal error taking snapshot",
                            exc_info=True)
+
+    def make_thumb(self, image_file, out_file, width=128, height=96):
+        size = width, height
+        im = Image.open(image_file)
+        im.thumbnail(size)
+        return im.save(out_file)
+
 
 ##########################################################################
 #Signal handling...
@@ -258,8 +277,15 @@ class Daemon:
         open(self.lockfile, 'w').write("")
         logger.debug("Lockfile %s unlocked" % (self.lockfile,))
 
+def test():
+    for dc in DjangoCamera.objects.all():
+        t = CameraThread(dc)
+        t.take_snapshot()
+
 if __name__ == "__main__":
-    if sys.argv.count("stop"):
+    if sys.argv.count("test"):
+        test()
+    elif sys.argv.count("stop"):
         Daemon(stop=True)
     else:
         Daemon()
