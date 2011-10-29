@@ -99,3 +99,36 @@ def snapshots(request):
                                'to_time':to_time}, 
                               context_instance=RequestContext(request))
 
+def camera(request):
+    cam = get_object_or_404(Camera, pk=request.GET.get('cam_id'))
+
+    snaps = Snapshot.objects.filter(camera=cam).order_by('-timestamp')
+        
+    #NOTE: QuerySets are generally lazy, so don't worry
+    #      about scale problems here with pagination
+    page = request.GET.get('page',1)
+    
+    try:
+        page = int(page)
+    except ValueError:
+        page = 1
+    
+    paginator = Paginator(snaps, 250)
+    
+    try:
+        objects = paginator.page(page)
+    except PageNotAnInteger:
+        # If page is not an integer, deliver first page.
+        objects = paginator.page(1)
+    except EmptyPage:
+        # If page is out of range (e.g. 9999), deliver last page of results.
+        objects = paginator.page(paginator.num_pages)
+    #n_snaps = p.count()
+
+    return render_to_response('cctv/camera.html', 
+                              {'objects':objects,
+                               'page':page,
+                               'camera':cam,
+                               }, 
+                              context_instance=RequestContext(request))
+

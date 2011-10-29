@@ -1,0 +1,40 @@
+{% extends "cctv/base.html" %}
+
+{% block content %}
+
+{% if objects.has_previous %}
+    <a href="?page={{ objects.previous_page_number }}">Previous</a>
+{% endif %}
+
+Page {{ objects.number }} of {{ objects.paginator.num_pages }}
+
+{% if objects.has_next %}
+    <a href="?page={{ objects.next_page_number }}">Next</a>
+{% endif %}
+
+<h1>Snapshots for {{ camera.name }}</h1>
+<p>Hover over an image to see it's timestamp</p>
+
+<br><br>
+	
+{% for snap in objects.object_list %}
+    <a href="snapshot.html?snap_id={{ snap.id }}" title="{{ snap.timestamp|date:"D j M H:i:s" }}"><img src="{{ MEDIA_URL }}/{{ snap.thumb }}"></a>
+{% endfor %}
+
+<br><br>
+
+{% if objects.has_previous %}
+    <a href="?page={{ objects.previous_page_number }}">Previous</a>
+{% endif %}
+
+Page {{ objects.number }} of {{ objects.paginator.num_pages }}
+
+{% if objects.has_next %}
+    <a href="?page={{ objects.next_page_number }}">Next</a>
+{% endif %}
+
+<br>
+
+
+{% endblock content %}
+

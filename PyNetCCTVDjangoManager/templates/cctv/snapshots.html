@@ -59,7 +59,7 @@ Page {{ objects.number }} of {{ objects.paginator.num_pages }}
 		<th>Id</th>
 		<th>Timestamp</th>
 		{% for cam in cameras %}
-		    <th>{{ cam.name }}</th>
+		    <th><a href="camera.html?cam_id={{ cam.id }}">{{ cam.name }}</a></th>
 		{% endfor %}
 	</tr>
 	
@@ -68,7 +68,7 @@ Page {{ objects.number }} of {{ objects.paginator.num_pages }}
     	<th>{{ snap.timestamp|date:"D j M H:i:s" }}</th>
     	{% for cam in cameras %}
     		{% ifequal snap.camera cam %}
-    			<td><a href="snapshot.html?snap_id={{ snap.id }}"><img src="{{ MEDIA_URL }}/{{ snap.image }}" width="100"></a></td>
+    			<td><a href="snapshot.html?snap_id={{ snap.id }}"><img src="{{ MEDIA_URL }}/{{ snap.thumb }}"></a></td>
     		{% else %}
     			<td></td>
     		{% endifequal %}
