@@ -113,7 +113,7 @@ def camera(request):
     except ValueError:
         page = 1
     
-    paginator = Paginator(snaps, 250)
+    paginator = Paginator(snaps, 100)
     
     try:
         objects = paginator.page(page)
