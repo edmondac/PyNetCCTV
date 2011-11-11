@@ -144,10 +144,14 @@ class CameraThread(BaseThread):
                                                   dj_sn.timestamp),
                              t_obj)
 
-
             # Don't need dj_sn.save() as the
             # previous line saves the object too
             logger.debug("Snapshot taken: %s" % (dj_sn,))
+
+            del f_obj
+            del t_obj
+            del dj_sn
+
         except:
             logger.warning("Non-fatal error taking snapshot",
                            exc_info=True)
@@ -204,7 +208,7 @@ class Daemon:
         logger.debug("Waiting for stop signal")
 
         while BaseThread.stop is False:
-            pass
+            time.sleep(1)
 
         logger.debug("Joining threads")
 
