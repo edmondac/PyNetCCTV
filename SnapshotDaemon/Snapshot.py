@@ -165,20 +165,17 @@ class CameraThread(BaseThread):
             time.sleep(self.dj_cam.interval)
 
     def take_snapshot(self):
-        dj_sn = DjangoSnapshot()
-        dj_sn.camera = self.dj_cam
-        dj_sn.save()  # For the timestamp
-
         try:
+            dj_sn = DjangoSnapshot()
+            dj_sn.camera = self.dj_cam
+            dj_sn.save()  # For the timestamp
+
             # Download the snapshot from the camera
             logger.debug("Downloading %s" % (self.url,))
             u_fh = urllib.urlopen(self.url)
             image_data = u_fh.read()
             u_fh.close()
-        except:
-            logger.warning("Non-fatal error taking snapshot",
-                           exc_info=True)
-        else:
+
             # Create the main image object
             dj_sn.image.save("%s_%s.jpg" % (self.dj_cam.name,
                                             dj_sn.timestamp),
@@ -201,6 +198,10 @@ class CameraThread(BaseThread):
             # Don't need dj_sn.save() as the
             # save calls to the images save the object too
             logger.debug("Snapshot taken: %s" % (dj_sn,))
+        except:
+            logger.warning("Non-fatal error taking snapshot",
+                           exc_info=True)
+            return
 
 
 # Signal handling...
