@@ -1,18 +1,6 @@
-######################################################################
-#Set up logging
+import ConfigParser
 import logging
 import logging.handlers
-logger = logging.getLogger('pynetcctv')
-logfile = "daemon.log"
-hdlr = logging.handlers.RotatingFileHandler(logfile,
-                                            maxBytes=10000000,
-                                            backupCount=5)
-formatter = logging.Formatter('%(asctime)s [%(process)d] %(levelname)s %(message)s')
-hdlr.setFormatter(formatter)
-logger.addHandler(hdlr)
-logger.setLevel(logging.DEBUG)
-
-######################################################################
 from PyNetCCTVDjangoManager.models import Camera as DjangoCamera
 from PyNetCCTVDjangoManager.models import Snapshot as DjangoSnapshot
 from django.core.files import File
@@ -23,25 +11,79 @@ import signal
 import os
 import sys
 import subprocess
-import Image
+from PIL import Image
+from cStringIO import StringIO
+from django.core.files.base import ContentFile
 
+# Load the configuration
+config = ConfigParser.SafeConfigParser()
+config.read("daemon.conf")
+debug = False
+if config.get("main", "debug").lower() == "true":
+    debug = True
+logfile = config.get("main", "logfile")
+lockfile = config.get("main", "lockfile")
+df_threshold = config.get("main", "diskusage")
+
+# Set up logging
+logger = logging.getLogger('pynetcctv')
+hdlr = logging.handlers.RotatingFileHandler(logfile,
+                                            maxBytes=10000000,
+                                            backupCount=5)
+formatter = logging.Formatter('%(asctime)s [%(process)d] [%(threadName)s] %(levelname)s %(message)s')
+hdlr.setFormatter(formatter)
+logger.addHandler(hdlr)
+if debug:
+    logger.setLevel(logging.DEBUG)
+
+# Classes and functions
 
 class BaseThread(threading.Thread):
     stop = False
 
 
 class HousekeepingThread(BaseThread):
-    def __init__(self, df_perc=80, sleep_time=60):
+    def __init__(self, df_perc=df_threshold, sleep_time=60):
         self.df_perc = df_perc
         self.sleep_time = sleep_time
+        self.last_mem_info = (0,0,0)
+        self.mem_info = None
         super(HousekeepingThread, self).__init__()
+        self.daemon = True
+        self.name = "Housekeeping"
 
     def run(self):
         while super(HousekeepingThread, self).stop is False:
-            self.check()
+            self.check_disk()
+            if debug:
+                self.check_mem()
             time.sleep(self.sleep_time)
+            
+    def check_mem(self):
+        #import gc
+        #logger.debug(str(gc.collect()))
+        
+        def _check(x):
+            return int(os.popen('ps -p %d -o %s | tail -1' %
+                                (os.getpid(), x)).read())
 
-    def check(self):
+        self.last_mem_info = self.mem_info
+        self.mem_info = (_check("rss"),
+                         _check("vsz"))
+
+        if self.last_mem_info:
+            diffs = [self.mem_info[i] - self.last_mem_info[i]
+                     for i in range(2)]
+            
+            logger.debug("Memory info: Res: %s (%s%s) Vir: %s (%s%s)" \
+                             % (self.mem_info[0],
+                                "+" if diffs[0] >= 0 else "",
+                                diffs[0],
+                                self.mem_info[1],
+                                "+" if diffs[1] >= 0 else "",
+                                diffs[1]))
+
+    def check_disk(self):
         #Find the filesystem with the snapshots
         #and check its disk usage
 
@@ -99,7 +141,7 @@ class HousekeepingThread(BaseThread):
                               stdout=subprocess.PIPE).communicate()[0]
         perc_full = df.split('\n')[1].split()[4]
         assert perc_full[-1] == "%", "Fatal error finding disk usage"
-        logger.info("Found percentage disk usage is %s (threshold is %s%%)" % (perc_full, self.df_perc))
+        logger.debug("Found percentage disk usage is %s (threshold is %s%%)" % (perc_full, self.df_perc))
         return int(perc_full[:-1])
 
 
@@ -114,6 +156,8 @@ class CameraThread(BaseThread):
                                 self.dj_cam.snapshot_url)
 
         super(CameraThread, self).__init__()
+        self.daemon = True
+        self.name = "Thread:%s" % (self.dj_cam.hostname,)
 
     def run(self):
         while super(CameraThread, self).stop is False:
@@ -121,52 +165,45 @@ class CameraThread(BaseThread):
             time.sleep(self.dj_cam.interval)
 
     def take_snapshot(self):
+        dj_sn = DjangoSnapshot()
+        dj_sn.camera = self.dj_cam
+        dj_sn.save()  # For the timestamp
+
         try:
-            dj_sn = DjangoSnapshot()
-            dj_sn.camera = self.dj_cam
-            dj_sn.save()  # For the timestamp
-
-            tmpf = "/tmp/pynetcctv_snap_%s_tmp.jpg" % (self.dj_cam.hostname,)
-
             # Download the snapshot from the camera
-            result = urllib.urlretrieve(self.url, tmpf)
-            f_obj = File(open(result[0]))
-            dj_sn.image.save("%s_%s.jpg" % (self.dj_cam.name,
-                                            dj_sn.timestamp),
-                             f_obj)
-            
-            #Re-open or seek(0) the file with the open call
-            f_obj.open()
-            th_tmpf = "/tmp/pynetcctv_snap_%s_thumb_tmp.jpg" % (self.dj_cam.hostname,)
-            self.make_thumb(f_obj, th_tmpf)
-            t_obj = File(open(th_tmpf))
-            dj_sn.thumb.save("%s_%s_thumb.jpg" % (self.dj_cam.name,
-                                                  dj_sn.timestamp),
-                             t_obj)
-
-            # Don't need dj_sn.save() as the
-            # previous line saves the object too
-            logger.debug("Snapshot taken: %s" % (dj_sn,))
-
-            del f_obj
-            del t_obj
-            del dj_sn
-
+            logger.debug("Downloading %s" % (self.url,))
+            u_fh = urllib.urlopen(self.url)
+            image_data = u_fh.read()
+            u_fh.close()
         except:
             logger.warning("Non-fatal error taking snapshot",
                            exc_info=True)
+        else:
+            # Create the main image object
+            dj_sn.image.save("%s_%s.jpg" % (self.dj_cam.name,
+                                            dj_sn.timestamp),
+                             ContentFile(image_data))
+            
+            # Create the thumbnail object
+            image_f = StringIO(image_data)
+            size = 128, 96
+            im = Image.open(image_f)
+            im.thumbnail(size)
+            thumb_f = StringIO()
+            im.save(thumb_f, "JPEG")
+            dj_sn.thumb.save("%s_%s_thumb.jpg" % (self.dj_cam.name,
+                                                  dj_sn.timestamp),
+                             ContentFile(thumb_f.read()))
+            
+            image_f.close()
+            thumb_f.close()
 
-    def make_thumb(self, image_file, out_file, width=128, height=96):
-        size = width, height
-        im = Image.open(image_file)
-        im.thumbnail(size)
-        return im.save(out_file)
+            # Don't need dj_sn.save() as the
+            # save calls to the images save the object too
+            logger.debug("Snapshot taken: %s" % (dj_sn,))
 
 
-##########################################################################
-#Signal handling...
-
-
+# Signal handling...
 def sig_handler(signum, frame):
     logger.info("Caught signal %s - terminating" % (signum,))
     BaseThread.stop = True
@@ -174,12 +211,8 @@ def sig_handler(signum, frame):
 signal.signal(signal.SIGTERM, sig_handler)
 signal.signal(signal.SIGINT, sig_handler)
 
-
-##########################################################################
-#The main process...
+# The main process...
 class Daemon:
-    lockfile = "daemon.lock"
-
     def __init__(self, stop=False):
         print "\n\nSee %s for info\n" % (logfile,)
         if not self.lock():
@@ -210,18 +243,14 @@ class Daemon:
         while BaseThread.stop is False:
             time.sleep(1)
 
-        logger.debug("Joining threads")
-
-        for t in self.threads:
-            t.join()
-
+        # The threads are daemonized, so they'll exit when we do
         self.unlock()
         logger.debug("All done")
 
     def lock(self, force=True):
         ok = False
-        if os.path.exists(self.lockfile):
-            pid = open(self.lockfile).read().strip()
+        if os.path.exists(lockfile):
+            pid = open(lockfile).read().strip()
             if pid:
                 #There is a pid in the lockfile
                 if os.path.exists("/proc/%s" % (pid,)):
@@ -267,10 +296,10 @@ class Daemon:
         if ok:
             logger.debug("Trying to take the lockfile")
             try:
-                open(self.lockfile, 'w').write(str(os.getpid()))
-                logger.debug("Lockfile %s locked" % (self.lockfile,))
+                open(lockfile, 'w').write(str(os.getpid()))
+                logger.debug("Lockfile %s locked" % (lockfile,))
             except:
-                logger.error("Error locking file %s" % (self.lockfile,),
+                logger.error("Error locking file %s" % (lockfile,),
                              exc_info=True)
                 ok = False
 
@@ -278,8 +307,8 @@ class Daemon:
 
     def unlock(self):
         #Clear the lock file
-        open(self.lockfile, 'w').write("")
-        logger.debug("Lockfile %s unlocked" % (self.lockfile,))
+        open(lockfile, 'w').write("")
+        logger.debug("Lockfile %s unlocked" % (lockfile,))
 
 def test():
     for dc in DjangoCamera.objects.all():

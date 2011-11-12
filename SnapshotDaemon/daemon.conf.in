@@ -1,0 +1,14 @@
+[django source]
+#Paths to django project
+DJANGOPROJECT_PARENT_PATH=/home/ed/Django
+DJANGOPROJECT=ed_django
+
+[main]
+#Enable/disable debug mode
+debug=True
+#Location of the log file
+logfile=daemon.log
+#Location of the lock file
+lockfile=daemon.lock
+#Maximum percentage disk usage
+diskusage=80
