@@ -35,6 +35,8 @@ hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
 if debug:
     logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
 
 # Classes and functions
 
