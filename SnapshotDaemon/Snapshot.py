@@ -154,7 +154,6 @@ class CameraThread(BaseThread):
                                 self.dj_cam.snapshot_url)
 
         super(CameraThread, self).__init__()
-        self.daemon = True
         self.name = "Thread:%s" % (self.dj_cam.hostname,)
 
     def run(self):
@@ -186,6 +185,7 @@ class CameraThread(BaseThread):
             im.thumbnail(size)
             thumb_f = StringIO()
             im.save(thumb_f, "JPEG")
+            thumb_f.seek(0)
             dj_sn.thumb.save("%s_%s_thumb.jpg" % (self.dj_cam.name,
                                                   dj_sn.timestamp),
                              ContentFile(thumb_f.read()))
