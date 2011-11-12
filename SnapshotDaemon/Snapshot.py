@@ -3,7 +3,6 @@ import logging
 import logging.handlers
 from PyNetCCTVDjangoManager.models import Camera as DjangoCamera
 from PyNetCCTVDjangoManager.models import Snapshot as DjangoSnapshot
-from django.core.files import File
 import urllib
 import threading
 import time
@@ -38,8 +37,8 @@ if debug:
 else:
     logger.setLevel(logging.INFO)
 
-# Classes and functions
 
+# Classes and functions
 class BaseThread(threading.Thread):
     stop = False
 
@@ -48,7 +47,7 @@ class HousekeepingThread(BaseThread):
     def __init__(self, df_perc=df_threshold, sleep_time=60):
         self.df_perc = df_perc
         self.sleep_time = sleep_time
-        self.last_mem_info = (0,0,0)
+        self.last_mem_info = (0, 0, 0)
         self.mem_info = None
         super(HousekeepingThread, self).__init__()
         self.daemon = True
@@ -60,30 +59,26 @@ class HousekeepingThread(BaseThread):
             if debug:
                 self.check_mem()
             time.sleep(self.sleep_time)
-            
+
     def check_mem(self):
-        #import gc
-        #logger.debug(str(gc.collect()))
-        
         def _check(x):
             return int(os.popen('ps -p %d -o %s | tail -1' %
                                 (os.getpid(), x)).read())
 
-        self.last_mem_info = self.mem_info
-        self.mem_info = (_check("rss"),
-                         _check("vsz"))
+        self.mem_info = (_check("rss"), _check("vsz"))
 
-        if self.last_mem_info:
-            diffs = [self.mem_info[i] - self.last_mem_info[i]
-                     for i in range(2)]
-            
-            logger.debug("Memory info: Res: %s (%s%s) Vir: %s (%s%s)" \
-                             % (self.mem_info[0],
-                                "+" if diffs[0] >= 0 else "",
-                                diffs[0],
-                                self.mem_info[1],
-                                "+" if diffs[1] >= 0 else "",
-                                diffs[1]))
+        diffs = [self.mem_info[i] - self.last_mem_info[i]
+                 for i in range(2)]
+
+        logger.debug("Memory info: Res: %s (%s%s) Vir: %s (%s%s)" \
+                         % (self.mem_info[0],
+                            "+" if diffs[0] >= 0 else "",
+                            diffs[0],
+                            self.mem_info[1],
+                            "+" if diffs[1] >= 0 else "",
+                            diffs[1]))
+
+        self.last_mem_info = self.mem_info
 
     def check_disk(self):
         #Find the filesystem with the snapshots
@@ -91,8 +86,9 @@ class HousekeepingThread(BaseThread):
 
         #First, go through the records until we find one with an image file
         #(creation is not atomic, so some records may exist in an unfinished
-        # state)
-        for sn in DjangoSnapshot.objects.all():
+        # state). We'll try 50, since if we just call all() then the whole
+        # lot gets loaded into memory. (See Issue 5).
+        for sn in DjangoSnapshot.objects.all()[:50]:
             try:
                 #There is a possibility that some database records
                 #might exist without files
@@ -139,7 +135,7 @@ class HousekeepingThread(BaseThread):
 
     def check_df(self, path):
         logger.debug("Checking disk space on %s filesystem" % (path,))
-        df = subprocess.Popen(["df","."], 
+        df = subprocess.Popen(["df", "."],
                               stdout=subprocess.PIPE).communicate()[0]
         perc_full = df.split('\n')[1].split()[4]
         assert perc_full[-1] == "%", "Fatal error finding disk usage"
@@ -182,7 +178,7 @@ class CameraThread(BaseThread):
             dj_sn.image.save("%s_%s.jpg" % (self.dj_cam.name,
                                             dj_sn.timestamp),
                              ContentFile(image_data))
-            
+
             # Create the thumbnail object
             image_f = StringIO(image_data)
             size = 128, 96
@@ -193,7 +189,7 @@ class CameraThread(BaseThread):
             dj_sn.thumb.save("%s_%s_thumb.jpg" % (self.dj_cam.name,
                                                   dj_sn.timestamp),
                              ContentFile(thumb_f.read()))
-            
+
             image_f.close()
             thumb_f.close()
 
@@ -213,6 +209,7 @@ def sig_handler(signum, frame):
 
 signal.signal(signal.SIGTERM, sig_handler)
 signal.signal(signal.SIGINT, sig_handler)
+
 
 # The main process...
 class Daemon:
@@ -312,6 +309,7 @@ class Daemon:
         #Clear the lock file
         open(lockfile, 'w').write("")
         logger.debug("Lockfile %s unlocked" % (lockfile,))
+
 
 def test():
     for dc in DjangoCamera.objects.all():
