@@ -22,7 +22,12 @@ if config.get("main", "debug").lower() == "true":
     debug = True
 logfile = config.get("main", "logfile")
 lockfile = config.get("main", "lockfile")
-df_threshold = config.get("main", "diskusage")
+try:
+    df_threshold = int(config.get("main", "diskusage"))
+except:
+    logger.error("Error converting diskusage config to an integer",
+                 exc_info=True)
+    raise
 
 # Set up logging
 logger = logging.getLogger('pynetcctv')
