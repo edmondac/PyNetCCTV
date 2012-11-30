@@ -99,6 +99,46 @@ def snapshots(request):
                                'to_time':to_time}, 
                               context_instance=RequestContext(request))
 
+def video(request):
+    now = datetime.datetime.now()
+    from_date = request.GET.get('from_date', now.strftime("%d/%m/%y"))
+    from_time = request.GET.get('from_time', (now - datetime.timedelta(hours=1)).strftime("%H:%M"))
+    to_date = request.GET.get('to_date', now.strftime("%d/%m/%y"))
+    to_time = request.GET.get('to_time', now.strftime("%H:%M"))
+    camera_id = request.GET.get('camera', "")
+
+    try:
+        from_obj = datetime.datetime.strptime("%s %s" %(from_date, from_time), "%d/%m/%y %H:%M")
+        to_obj = datetime.datetime.strptime("%s %s" %(to_date, to_time), "%d/%m/%y %H:%M")
+    except ValueError:
+        from_obj = None
+        to_obj = None
+
+    try:
+        camera = Camera.objects.filter(id=camera_id)
+    except ValueError:
+        camera = None
+
+    if from_obj and to_obj:
+        snaps = Snapshot.objects.filter(camera=camera, timestamp__range=(from_obj, to_obj)).order_by('timestamp')
+    else:
+        snaps = []
+
+    snap_names = [x.image for x in snaps]
+    
+    cams = Camera.objects.all()
+
+    return render_to_response('cctv/video.html', 
+                              {'camera':camera,
+                               'cameras':cams,
+                               'num_snaps':len(snap_names),
+                               'snap_names':snap_names,
+                               'from_date':from_date,
+                               'from_time':from_time,
+                               'to_date':to_date,
+                               'to_time':to_time}, 
+                              context_instance=RequestContext(request))
+
 def camera(request):
     cam = get_object_or_404(Camera, pk=request.GET.get('cam_id'))
 

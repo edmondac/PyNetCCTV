@@ -1,0 +1,59 @@
+{% extends "cctv/base.html" %}
+
+{% block content %}
+<script type="text/javascript" src="{{ MEDIA_URL }}/cctv/jpgMovieFlexibleSliderPlayer.js"> </script>
+
+<div id="filters">
+Choose timeframe and camera (defaults to the last hour):<br>
+<form>
+ <table id="filters_tab">
+  <tr>
+   <th>Camera</th>
+   <td>
+     <select name="camera">
+       {% for cam in cameras %}
+       <option value="{{ cam.id }}">{{ cam.name }}</option>
+       {% endfor %}
+     </select>
+   </td>
+  </tr>
+  <tr>
+   <th rowspan="2">From</th>
+   <td><input name="from_date" size="8" value="{{ from_date|default:"dd/mm/yy" }}"></td>
+  </tr>
+  <tr>
+   <td><input name="from_time" size="8" value="{{ from_time }}"></td>
+  </tr>
+  <tr>
+   <th rowspan="2">To</th>
+   <td><input name="to_date" size="8" value="{{ to_date|default:"dd/mm/yy" }}"></td>
+  </tr>
+  <tr>
+   <td><input name="to_time" size="8" value="{{ to_time }}"></td>
+  </tr>
+  <tr>
+   <td colspan="2"><input type="submit" value="apply">
+   </td>
+  </tr>
+ </table>
+</form>
+</div>
+
+<p>Loading {{ num_snaps }} images...</p>
+
+<DIV ID="jpgmovie"></DIV>
+<script type="text/javascript">
+	mov = jpgMovieFactory( 'jpgmovie', 'jpgMovieFlexibleSliderPlayer', 640, 480 );
+	mov.setImageUrlBase("{{ MEDIA_URL }}");
+	mov.setInitialImage("cctv/loading.jpg");
+	mov.setAutoPlayOn();
+	mov.setInterval( 50 );
+	mov.draw();
+       {% for s in snap_names %}
+	mov.addFrame("{{ s }}");
+       {% endfor %}
+	
+</script>
+	
+{% endblock content %}
+
